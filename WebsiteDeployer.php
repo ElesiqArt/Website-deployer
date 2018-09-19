@@ -2,8 +2,10 @@
 
 	class WebsiteDeployer {
 		private $config = NULL;
+		private $variable = NULL;
 		private $EOL = ''; 
 		
+		private $regExpHttp = '/^(www\.)/i';
 		private $extToMeth = Array(
 			'html' 	=> 'applyHTMLConfig',
 			'js' 	=> 'applyJSConfig',
@@ -11,7 +13,7 @@
 			'json' 	=> 'applyJSONConfig'
 		);
 		
-		public function __construct($configPath = NULL, $serverPath = NULL) {
+		public function __construct($configPath = NULL, $serverPath = NULL, $variablePath = NULL) {
 			libxml_use_internal_errors(true);
 			
 			if(php_sapi_name() == 'cli') {
@@ -22,18 +24,70 @@
 			}
 			
 			if($configPath && $serverPath) {
-				$this->loadConfig($configPath, $serverPath);
+				if($this->loadConfig($configPath, $serverPath, $variablePath)) {
+					echo 'Config loaded.' . $this->EOL;
+				}
+				else {
+					echo 'An error occured during config loading.' . $this->EOL;
+				}
 			}
 		}
 		
 		
-		public function loadConfig($filePath, $configPath) {
+		private function getConfig($property, $from) {
+			if(isset($from[$property])) {
+				if(is_string($from[$property]) && isset($this->variable[$from[$property]])) {
+					return $this->variable[$from[$property]];
+				}
+				else {
+					return $from[$property];
+				}
+			}
+			else {
+				return FALSE;
+			}
+		}
+		
+		private function createDirectory($path) {
+			if(!is_dir($path)) {
+				if(mkdir($path, 777)) {
+					echo 'Directory "' . $path . '" creation success.' . $this->EOL;
+				
+					return TRUE;
+				}
+				else {
+					echo 'Directory "' . $path . '" creation FAILED.' . $this->EOL;
+					
+					return FALSE;
+				}
+			}
+			else {
+				echo 'Directory "' . $path . '" already exists.' . $this->EOL;
+				
+				return TRUE;
+			}
+		}
+		
+		
+		public function loadConfig($filePath, $configPath, $variablePath) {
 			if(is_file($filePath)) {
 				if(is_file($configPath)) {
+					if(!$variablePath || is_file($variablePath)) {
+						$this->variable = json_decode(file_get_contents($variablePath), TRUE);
+						
+						if(!$this->variable) {
+							echo 'Cannot read variable file. Pleade verify the json format.' . $this->EOL;
+							
+							return FALSE;
+						}
+					}
+					
 					$this->config = json_decode(file_get_contents($filePath), TRUE);
 					
 					if(!$this->config) {
-						echo 'Cannot read config file. Please verify the json format.';
+						echo 'Cannot read config file. Please verify the json format.' . $this->EOL;
+						
+						return FALSE;
 					}
 					else {
 						if(!isset($this->config['ignore'])) {
@@ -48,36 +102,34 @@
 					$configPath = json_decode(file_get_contents($configPath), TRUE);
 					
 					if(!$configPath) {
-						echo 'Cannot read server config file. Please verify the json format.';
+						echo 'Cannot read server config file. Please verify the json format.' . $this->EOL;
 					}
 					else {
 						$this->config['root'] 		= str_replace('\\', '', $configPath['root']);
 						$this->config['source'] 	= str_replace('\\', '', $configPath['source']);
 						$this->config['location'] 	= str_replace('\\', '', $configPath['location']);
+						
+						return TRUE;
 					}
 				}
 				else {
-					echo 'Cannot load server config file "'. $configPath . '".';
-					
-					return FALSE;
+					echo 'Cannot load server config file "'. $configPath . '".' . $this->EOL;
 				}
 			}
 			else {
-				echo 'Cannot load config file "'. $filePath . '".';
-				
-				return FALSE;
+				echo 'Cannot load config file "'. $filePath . '".' . $this->EOL;
 			}
+			
+			return FALSE;
 		}
 		
 		
 		public function applyConfig() {
 			if($this->config) {
-				mkdir($this->config['location'], 777);
-				
-				return $this->applyConfigToDir($this->config['source']);
+				return $this->createDirectory($this->getConfig('location', $this->config)) && $this->applyConfigToDir($this->getConfig('source', $this->config));
 			}
 			else {
-				echo 'No config found.';
+				echo 'No config found.' . $this->EOL;
 				
 				return FALSE;
 			}
@@ -85,20 +137,26 @@
 		
 		private function applyConfigToDir($path, $parentPath = '/') {
 			$dir = new DirectoryIterator($path);
+			$source = $this->getConfig('source', $this->config);
+			$location = $this->getConfig('location', $this->config);
 			
 			foreach($dir as $target) {
 				if(!$target->isDot() && !$target->isLink()) {
-					$path = str_replace('\\', '/', str_replace($this->config['source'], '', $target->getPathname()));
+					$path = str_replace('\\', '/', str_replace($source, '', $target->getPathname()));
 					
 					echo 'Act path: "' . $target->getPathname() . '" (' . $path . ').' . $this->EOL;
 					
 					if(!in_array($path, $this->config['ignore'])) {
 						if($target->isFile()) {
 							$ext = strtolower($target->getExtension());
-							$name = $this->config['location'] . $parentPath . $target->getBaseName();
+							$name = $location . $parentPath . $target->getBaseName();
 							
 							if(isset($this->extToMeth[$ext])) {
-								$fromConfig = isset($this->config['file'][$ext]) ? $this->config['file'][$ext] : Array();
+								$fromConfig = $this->getConfig($ext, $this->config['file']);
+								
+								if(!$fromConfig) {
+									$fromConfig = Array();
+								}
 								
 								$result = $this->{$this->extToMeth[$ext]}($target, $fromConfig);
 								
@@ -114,9 +172,9 @@
 							}
 						}
 						else if($target->isDir()) {
-							mkdir($this->config['location'] . $parentPath . $target->getBaseName());
-							
-							$this->applyConfigToDir($target->getPathname(), $parentPath . $target->getBaseName() . '/');
+							if(!$this->createDirectory($location . $parentPath . $target->getBaseName()) || !$this->applyConfigToDir($target->getPathname(), $parentPath . $target->getBaseName() . '/')) {
+								return FALSE;
+							}
 						}
 					}
 				}
@@ -127,7 +185,7 @@
 		
 		
 		private function applyHTMLConfig($target, $htmlConfig) {
-			$pathName = str_replace('\\', '/', str_replace($this->config['source'], '', $target->getPathname()));
+			$pathName = str_replace('\\', '/', str_replace($this->getConfig('source', $this->config), '', $target->getPathname()));
 			
 			if(isset($htmlConfig['fileParam']) && isset($htmlConfig['fileParam'][$pathName])) {
 				$target = $htmlConfig['fileParam'][$pathName];
@@ -148,7 +206,7 @@
 				);
 			}
 			
-			$doc = $this->createDocFromSource($target['path']);
+			$doc = $this->createDocFrom($target['path']);
 			
 			if($doc) {
 				if(isset($target['replaceLink']) && $target['replaceLink']) {
@@ -178,23 +236,45 @@
 		}
 		
 		
-		private function createDocFromSource($path, $isFragment = FALSE) {
-			if(is_file($path)) {
+		private function createDocFrom($path, $isFragment = FALSE) {
+			if(preg_match($this->regExpHttp, $path)) {
+				$curl = curl_init();
+			
+				curl_setopt_array($curl, Array(
+					CURLOPT_URL				=> $path,
+					CURLOPT_HTTPGET			=> TRUE,
+					CURLOPT_RETURNTRANSFER	=> TRUE
+				));
+				
+				$htmlStr = curl_exec($curl);
+				$code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+				
+				curl_close($curl);
+				
+				if($code < 200 || $code >= 300) {
+					echo 'Cannot load ressource at "' . $path . '". Error code: ' . $code . '; ' . curl_error($curl) . $this->EOL;
+					
+					return FALSE;
+				}
+			}
+			else if(is_file($path)) {
 				$htmlStr = file_get_contents($path);
-				
-				$doc = new DOMDocument;
-				
-				// LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD empêchent l'ajout du Doctype et des balises html+body
-				// <div></div> résou un bug, lorsqu'un fragment de document est chargé, celui-ci ne peut pas avoir plusieurs noeuds à sa racine, il doit obligatoirement avoir un noeud général parent
-				$doc->loadHTML($isFragment ? '<div>' . $htmlStr . '</div>' : $htmlStr, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-				
-				return $doc;
 			}
 			else {
-				echo 'Cannot found file "' . $path . '".' . $this->EOL;
+				echo 'Cannot load file "' . $path . '".' . $this->EOL;
 				
 				return FALSE;
 			}
+		
+			$doc = new DOMDocument;
+			
+			// LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD empêchent l'ajout du Doctype et des balises html+body
+			// <div></div> résou un bug, lorsqu'un fragment de document est chargé, celui-ci ne peut pas avoir plusieurs noeuds à sa racine, il doit obligatoirement avoir un noeud général parent
+			$doc->loadHTML($isFragment ? '<div>' . $htmlStr . '</div>' : $htmlStr, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+			
+			echo 'Ressource from "' . $path . '" loaded.' . $this->EOL;
+			
+			return $doc;
 		}
 		
 		
@@ -205,21 +285,20 @@
 			foreach($link as $domLink) {
 				$url = $domLink->getAttribute('href');
 				
-				// Add support of curl for http|https
-				// Add support of relative href
-				// Add optional "root" var in config-file
-				if(!preg_match('/^(http|https|\/)/i', $url)) {
-					$url = $parentDir . '/' . $url;
-				}
-				else {
-					$url = $this->config['root'] . $url;
+				if(strlen($url)) {
+					if($url[0] == '/') {
+						$url = $this->getConfig('root', $this->config) . $url;
+					}
+					else if(!preg_match($this->regExpHttp, $url)) {
+						$url = $parentDir . '/' . $url;
+					}
 				}
 				
-				$childDoc = $this->createDocFromSource($url, TRUE);
+				$childDoc = $this->createDocFrom($url, TRUE);
 				
 				if($childDoc) {
 					if($this->replaceLinkFrom($childDoc, dirname($url))) {
-						$childNodes = $childDoc->childNodes[0]->childNodes;	// [0] est le div ajouté par createDocFromSource
+						$childNodes = $childDoc->childNodes[0]->childNodes;	// [0] est le div ajouté par createDocFrom
 						
 						foreach($childNodes as $child) {
 							$clone = $doc->importNode($child, TRUE);
@@ -254,6 +333,8 @@
 						if(strlen($actAttr)) {
 							foreach($strList as $strFind => $strReplace) {
 								if(is_string($strReplace)) {
+									$strReplace = $this->getConfig($strFind, $strList);
+									
 									echo 'In: "' . $actAttr . '"' . $this->EOL;
 									echo 'Search for: "' . $strFind . '"' . $this->EOL;
 									echo 'Replace By: "' . $strReplace . '"' . $this->EOL;
@@ -308,10 +389,18 @@
 	
 	
 	if(php_sapi_name() == 'cli') {
-		$deployer = new WebsiteDeployer($argv[1], $argv[2]);
+		$deployer = new WebsiteDeployer($argv[1], $argv[2], $argv[3]);
+	}
+	else if(sizeof($_GET)) {
+		if(isset($_GET['file']) && isset($_GET['path']) && isset($_GET['variable'])) {
+			$deployer = new WebsiteDeployer($_GET['file'], $_GET['path'], $_GET['variable']);
+		}
+		else {
+			throw new Error('One or more GET argument is missing. Arguments "file", "path" and "variable" are mandatory.');
+		}
 	}
 	else {
-		$deployer = new WebsiteDeployer('config-file.json', 'config-path.json');
+		$deployer = new WebsiteDeployer('config-file.json', 'config-path.json', 'config-variable.json');
 	}
 	
 	$deployer->applyConfig();

@@ -1,0 +1,38 @@
+{
+	"file" : {
+		"html" : {
+			"replaceAttribute" : {
+				"XPath Selector String" : {
+					"Attribute Name" : {
+						"String to replace" : "String to use"
+					}
+				}
+			},
+			"replaceString" : {
+				"String to search" : "String to use"
+			},
+			"fileParam" : {
+				
+			}
+		},
+		"js" : {
+			"replaceString" : {
+				"String to search" : "String to use"
+			}
+		},
+		"css" : {
+			"replaceString" : {
+				"String to search" : "String to use"
+			}
+		},
+		"json" : {
+			"replaceString" : {
+				"String to search" : "String to use"
+			}
+		}
+	},
+	
+	"ignore" : [
+		"Directory (with no / at the end) or file to ignore"
+	]
+}

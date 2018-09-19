@@ -1,0 +1,6 @@
+{
+	"root" : "Absolute path to the www directory, mandatory for he use of lik rel='import'",
+	
+	"source" : "Absolute path to the parent project folder",
+	"location" : "Absolute path to a folder where the result has to be stored"
+}
