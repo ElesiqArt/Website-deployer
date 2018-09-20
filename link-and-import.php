@@ -232,7 +232,7 @@
 				ini_set('xdebug.var_display_max_data', -1);
 				var_dump($doc->saveHTML());*/
 				
-				return utf8_decode($buffer);
+				return $buffer;
 			}
 			else {
 				return FALSE;
@@ -274,7 +274,7 @@
 			
 			// LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD empêchent l'ajout du Doctype et des balises html+body
 			// <div></div> résou un bug, lorsqu'un fragment de document est chargé, celui-ci ne peut pas avoir plusieurs noeuds à sa racine, il doit obligatoirement avoir un noeud général parent
-			$doc->loadHTML($isFragment ? '<div>' . $htmlStr . '</div>' : $htmlStr, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+			$doc->loadHTML(mb_convert_encoding($isFragment ? '<div>' . $htmlStr . '</div>' : $htmlStr, 'HTML-ENTITIES', 'UTF-8'), LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
 			
 			echo 'Ressource from "' . $path . '" loaded.' . $this->EOL;
 			
