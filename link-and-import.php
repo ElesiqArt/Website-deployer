@@ -99,6 +99,10 @@
 						}
 					}
 					
+					for($i = 0, $length = sizeof($this->config['ignore']); $i < $length; $i++) {
+						$this->config['ignore'][$i] = $this->getConfig($i, $this->config['ignore']);
+					}
+					
 					$configPath = json_decode(file_get_contents($configPath), TRUE);
 					
 					if(!$configPath) {
