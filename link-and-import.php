@@ -50,7 +50,7 @@
 		
 		private function createDirectory($path) {
 			if(!is_dir($path)) {
-				if(mkdir($path, 777)) {
+				if(mkdir($path, 0744)) {
 					echo 'Directory "' . $path . '" creation success.' . $this->EOL;
 				
 					return TRUE;
