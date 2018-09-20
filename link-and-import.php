@@ -69,17 +69,27 @@
 		}
 		
 		
-		public function loadConfig($filePath, $configPath, $variablePath) {
+		public function loadConfig($filePath, $configPath, $variablePath = NULL) {
 			if(is_file($filePath)) {
 				if(is_file($configPath)) {
-					if(!$variablePath || is_file($variablePath)) {
-						$this->variable = json_decode(file_get_contents($variablePath), TRUE);
-						
-						if(!$this->variable) {
-							echo 'Cannot read variable file. Pleade verify the json format.' . $this->EOL;
+					if($variablePath) {
+						if(is_file($variablePath)) {
+							$this->variable = json_decode(file_get_contents($variablePath), TRUE);
+							
+							if(!$this->variable) {
+								echo 'Cannot read variable config file. Pleade verify the json format.' . $this->EOL;
+								
+								return FALSE;
+							}
+						}
+						else {
+							echo 'Cannot found ariable config file "' . $vaiablePath . '"' . $this->EOL;
 							
 							return FALSE;
 						}
+					}
+					else {
+						$this->variable = Array();
 					}
 					
 					$this->config = json_decode(file_get_contents($filePath), TRUE);
