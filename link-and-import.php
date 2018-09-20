@@ -13,7 +13,7 @@
 			'json' 	=> 'applyJSONConfig'
 		);
 		
-		public function __construct($configPath = NULL, $serverPath = NULL, $variablePath = NULL) {
+		public function __construct($configFile = NULL, $configPath = NULL, $configVariable = NULL) {
 			libxml_use_internal_errors(true);
 			
 			if(php_sapi_name() == 'cli') {
@@ -23,8 +23,8 @@
 				$this->EOL = '<br>';
 			}
 			
-			if($configPath && $serverPath) {
-				if($this->loadConfig($configPath, $serverPath, $variablePath)) {
+			if($configFile && $configPath) {
+				if($this->loadConfig($configFile, $configPath, $configVariable)) {
 					echo 'Config loaded.' . $this->EOL;
 				}
 				else {
@@ -69,21 +69,21 @@
 		}
 		
 		
-		public function loadConfig($filePath, $configPath, $variablePath = NULL) {
-			if(is_file($filePath)) {
+		public function loadConfig($configFile, $configPath, $configVariable = NULL) {
+			if(is_file($configFile)) {
 				if(is_file($configPath)) {
-					if($variablePath) {
-						if(is_file($variablePath)) {
-							$this->variable = json_decode(file_get_contents($variablePath), TRUE);
+					if($configVariable) {
+						if(is_file($configVariable)) {
+							$this->variable = json_decode(file_get_contents($configVariable), TRUE);
 							
 							if(!$this->variable) {
-								echo 'Cannot read variable config file. Pleade verify the json format.' . $this->EOL;
+								echo 'Cannot read "config-variable" file. Pleade verify the json format.' . $this->EOL;
 								
 								return FALSE;
 							}
 						}
 						else {
-							echo 'Cannot found ariable config file "' . $vaiablePath . '"' . $this->EOL;
+							echo 'Cannot found "config-variable" file "' . $vaiablePath . '".' . $this->EOL;
 							
 							return FALSE;
 						}
@@ -92,31 +92,31 @@
 						$this->variable = Array();
 					}
 					
-					$this->config = json_decode(file_get_contents($filePath), TRUE);
+					$this->config = json_decode(file_get_contents($configFile), TRUE);
 					
 					if(!$this->config) {
-						echo 'Cannot read config file. Please verify the json format.' . $this->EOL;
+						echo 'Cannot read "config-file" file. Please verify the json format.' . $this->EOL;
 						
 						return FALSE;
 					}
-					else {
-						if(!isset($this->config['ignore'])) {
-							$this->config['ignore'] = Array();
-						}
-						
-						if(!isset($this->config['file'])) {
-							$this->config['file'] = Array();
-						}
+					
+					if(!isset($this->config['file'])) {
+						$this->config['file'] = Array();
 					}
 					
-					for($i = 0, $length = sizeof($this->config['ignore']); $i < $length; $i++) {
-						$this->config['ignore'][$i] = $this->getConfig($i, $this->config['ignore']);
+					if(!isset($this->config['ignore'])) {
+						$this->config['ignore'] = Array();
+					}
+					else {
+						for($i = 0, $length = sizeof($this->config['ignore']); $i < $length; $i++) {
+							$this->config['ignore'][$i] = $this->getConfig($i, $this->config['ignore']);
+						}
 					}
 					
 					$configPath = json_decode(file_get_contents($configPath), TRUE);
 					
 					if(!$configPath) {
-						echo 'Cannot read server config file. Please verify the json format.' . $this->EOL;
+						echo 'Cannot read "config-path" file. Please verify the json format.' . $this->EOL;
 					}
 					else {
 						$this->config['root'] 		= str_replace('\\', '', $configPath['root']);
@@ -127,11 +127,11 @@
 					}
 				}
 				else {
-					echo 'Cannot load server config file "'. $configPath . '".' . $this->EOL;
+					echo 'Cannot found "config-path" file "'. $configPath . '".' . $this->EOL;
 				}
 			}
 			else {
-				echo 'Cannot load config file "'. $filePath . '".' . $this->EOL;
+				echo 'Cannot found "config-file" file "'. $configFile . '".' . $this->EOL;
 			}
 			
 			return FALSE;
@@ -175,10 +175,19 @@
 								$result = $this->{$this->extToMeth[$ext]}($target, $fromConfig);
 								
 								if($result) {
-									file_put_contents($name, $result);
+									if(file_put_contents($name, $result)) {
+										echo 'File created.' . $this->EOL;
+									}
+									else {
+										echo 'Error occured during file creation.' . $this->EOL;
+										
+										return FALSE;
+									}
 								}
 								else {
-									echo 'Error occured during file creation.';
+									echo 'Error occured during file generation.' . $this->EOL;
+									
+									return FALSE;
 								}
 							}
 							else {
@@ -191,6 +200,11 @@
 							}
 						}
 					}
+					else {
+						echo 'Path is ignored.' . $this->EOL;
+					}
+					
+					echo $this->EOL;
 				}
 			}
 			
@@ -212,8 +226,6 @@
 				$target = Array(
 					'path' 				=> $target->getPathname(),
 					'type' 				=> $target->getExtension(),
-					'minify' 			=> TRUE,
-					'createGzip' 		=> TRUE,
 					'replaceLink' 		=> TRUE,
 					'replaceAttribute' 	=> $htmlConfig['replaceAttribute'],
 					'replaceString'		=> $htmlConfig['replaceString']
@@ -236,11 +248,6 @@
 				if($target['replaceString']) {
 					$buffer = $this->replaceString($buffer, $target['replaceString']);
 				}
-				
-			/*	ini_set('xdebug.var_display_max_depth', -1);
-				ini_set('xdebug.var_display_max_children', -1);
-				ini_set('xdebug.var_display_max_data', -1);
-				var_dump($doc->saveHTML());*/
 				
 				return $buffer;
 			}
@@ -349,7 +356,7 @@
 								if(is_string($strReplace)) {
 									$strReplace = $this->getConfig($strFind, $strList);
 									
-									echo 'In: "' . $actAttr . '"' . $this->EOL;
+									echo 'In string: "' . $actAttr . '"' . $this->EOL;
 									echo 'Search for: "' . $strFind . '"' . $this->EOL;
 									echo 'Replace By: "' . $strReplace . '"' . $this->EOL;
 									echo 'Result: "' . str_replace($strFind, $strReplace, $actAttr) . '"' . $this->EOL . $this->EOL;
