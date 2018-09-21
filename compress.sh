@@ -44,19 +44,18 @@ for filename in `find . -type f -name '*' -not -name '*.gz'`; do
     gzip --force --best --keep $filename
 
     size=$(stat -c %s "$filename")
+    csize=$(stat -c %s $filename.gz)
 
-    if [ $(stat -c %s $filename) -le $(stat -c %s $filename.gz) ]; then
+    if [ $size -le $csize ]; then
 	echo "rm $filename.gz"
 	rm $filename.gz
-
-	csize=0
+	csize=$size
     else
-	csize=$(stat -c %s $filename.gz)
-	echo "$filename: $(ratio $size $csize) %" >> $stat
+	echo "$filename: $(ratio $size $csize) % (${size}B -> ${csize}B)" >> $stat
     fi
 
     total=$(($total + $size))
-    ctotal=$(($mtotal + $csize))
+    ctotal=$(($ctotal + $csize))
 done
 
-echo "Total: $(ratio $total $ctotal) % ($total B + $ctotal B)" >> $stat
+echo "Total: $(ratio $total $ctotal) % (${total}B -> ${ctotal}B)" >> $stat
