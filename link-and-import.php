@@ -378,6 +378,10 @@
 		private function replaceString($string, $replace) {
 			foreach($replace as $strFind => $strReplace) {
 				if(is_string($strReplace)) {
+					$strReplace = $this->getConfig($strFind, $replace);
+					
+					echo 'Searching to replace "' . $strFind . '" by "' . $strReplace . '".' . $this->EOL;
+					
 					$string = str_replace(str_replace('\\', '', $strFind), $strReplace, $string);
 				}
 				else if(!isset($strReplace['type']) || strtolower($strReplace['type']) == 'regexp') {
