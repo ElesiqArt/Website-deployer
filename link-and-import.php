@@ -1,5 +1,4 @@
 <?php
-
 	class WebsiteDeployer {
 		private $config = NULL;
 		private $variable = NULL;
@@ -50,7 +49,7 @@
 		
 		private function createDirectory($path) {
 			if(!is_dir($path)) {
-				if(mkdir($path, 0744)) {
+				if(mkdir($path, 0755)) {
 					echo 'Directory "' . $path . '" creation success.' . $this->EOL;
 				
 					return TRUE;

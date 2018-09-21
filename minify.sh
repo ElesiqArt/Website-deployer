@@ -84,7 +84,9 @@ for filename in `find . -type f -name '*' -not -name '*.$tmp_ext'`; do
 	size=$(stat -c %s "$filename")
 	msize=$(stat -c %s "$outdir/$filename.$tmp_ext")
 
-	echo "$filename: $(ratio $size $msize) %" >> $stat
+	if [[ $msize < $size ]]; then
+	    echo "$filename: $(ratio $size $msize) % (${size}B -> ${msize}B)" >> $stat
+	fi
 
 	total=$(($total + $size))
 	mtotal=$(($mtotal + $msize))
@@ -94,4 +96,4 @@ for filename in `find . -type f -name '*' -not -name '*.$tmp_ext'`; do
 
 done
 
-echo "Total: $(ratio $total $mtotal) % ($mtotalB)" >> $stat
+echo "Total: $(ratio $total $mtotal) % (${total}B -> ${mtotal}B)" >> $stat
