@@ -2,26 +2,26 @@
 
 function usage()
 {
-    echo "Usage: compress [--help,-h] [--stat <filename>] <outdir>"
+    echo "Usage: compress [--help,-h] [--stat <filename>] [<filename 1> <filename 2> ...]"
 }
 
 for arg in "$@"; do
     shift
     case "$arg" in
-	"--help") set -- "$@" "-h" ;;
-	"--stat") set -- "$@" "-s" ;;
-	*)        set -- "$@" "$arg"
+	"--help") set -- "$@" "-h"   ;;
+	"--stat") set -- "$@" "-s"   ;;
+	*)        set -- "$@" "$arg" ;;
     esac
 done
 
 stat="/dev/null"
 
 OPTIND=1
-while getopts "hx:c:j:s:" opt
+while getopts "hs:" opt
 do
   case "$opt" in
-    "h") usage; exit 0  ;;
-    "s") stat=${OPTARG} ;;
+    "h") usage; exit 0     ;;
+    "s") stat=${OPTARG}    ;;
     "?") usage >&2; exit 1 ;;
   esac
 done
@@ -39,7 +39,12 @@ function ratio()
 total=0
 ctotal=0
 
-for filename in `find . -type f -name '*' -not -name '*.gz'`; do
+for filename in "$@"; do
+
+    if [[ $filename == *.gz ]]; then
+	continue;
+    fi
+
     echo "gzip --force --best --keep $filename"
     gzip --force --best --keep $filename
 
