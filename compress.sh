@@ -53,7 +53,7 @@ for filename in "$@"; do
 
     if [ $size -le $csize ]; then
 	echo "rm $filename.gz"
-	rm $filename.gz
+	rm -f $filename.gz
 	csize=$size
     else
 	echo "$filename: $(ratio $size $csize) % (${size}B -> ${csize}B)" >> $stat
