@@ -82,7 +82,7 @@
 							}
 						}
 						else {
-							echo 'Cannot found "config-variable" file "' . $vaiablePath . '".' . $this->EOL;
+							echo 'Cannot found "config-variable" file "' . $variablePath . '".' . $this->EOL;
 							
 							return FALSE;
 						}
@@ -411,6 +411,7 @@
 		}
 	}
 	
+	// Example: http://localhost/internal/website-deployer/link-and-import.php?file=../website/deploy/config-file.json&path=../website/deploy/config-path.json&variable=../website/deploy/config-variable.json
 	
 	if(php_sapi_name() == 'cli') {
 		$deployer = new WebsiteDeployer($argv[1], $argv[2], $argv[3]);
