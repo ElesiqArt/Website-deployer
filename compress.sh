@@ -47,6 +47,7 @@ for filename in "$@"; do
 
     echo "gzip --force --best --keep $filename"
     gzip --force --best --keep $filename
+    touch $filename
 
     size=$(stat -c %s "$filename")
     csize=$(stat -c %s $filename.gz)
