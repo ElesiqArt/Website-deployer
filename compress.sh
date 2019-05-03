@@ -47,13 +47,14 @@ for filename in "$@"; do
 
     echo "gzip --force --best --keep $filename"
     gzip --force --best --keep $filename
+    touch $filename
 
     size=$(stat -c %s "$filename")
     csize=$(stat -c %s $filename.gz)
 
     if [ $size -le $csize ]; then
 	echo "rm $filename.gz"
-	rm $filename.gz
+	rm -f $filename.gz
 	csize=$size
     else
 	echo "$filename: $(ratio $size $csize) % (${size}B -> ${csize}B)" >> $stat
