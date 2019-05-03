@@ -2,7 +2,7 @@
 
 usage()
 {
-    echo "Usage: minify [--help,-h] [--dry-run,-d] [--html <cmd>] [--css <cmd>] [--js <cmd>] [--tmp-ext <extension>] [--stat <filename>] <outdir>"
+    echo "Usage: minify [--help,-h] [--dry-run,-d] [--html <cmd>] [--css <cmd>] [--js <cmd>] [--tmp-ext <extension>] [--stat <filename>] [<filename 1> <filename 2> ...]"
 }
 
 for arg in "$@"; do
@@ -42,12 +42,6 @@ do
 done
 shift $(expr $OPTIND - 1)
 
-if [[ $# == 1 ]]; then
-    outdir="$1"
-else
-    outdir="./"
-fi
-
 total=0
 mtotal=0
 
@@ -60,7 +54,11 @@ function ratio()
     fi
 }
 
-for filename in `find . -type f -name '*' -not -name '*.$tmp_ext'`; do
+for filename in "$@"; do
+
+    if [[ $filename == *.$tmp_ext ]]; then
+       continue
+    fi
 
     case "$filename" in
 	*.html) cmd=$html ;;
@@ -69,20 +67,18 @@ for filename in `find . -type f -name '*' -not -name '*.$tmp_ext'`; do
 	*)      cmd="cat" ;;
     esac
 
-    echo "$cmd $filename > $outdir/$filename.$tmp_ext"
+    echo "$cmd $filename > $filename.$tmp_ext"
 
     if [[ $dry_run == 0 ]]; then
-	mkdir -p $outdir/`dirname $filename`
-
-	$cmd $filename > $outdir/$filename"."$tmp_ext
+	$cmd $filename > $filename"."$tmp_ext
 
 	if [ $? -ne 0 ]; then
-	    echo "cat $filename > $outdir/$filename.$tmp_ext"
-	    cat $filename > $outdir/$filename"."$tmp_ext
+	    echo "cat $filename > $filename.$tmp_ext"
+	    less $filename > $filename"."$tmp_ext
 	fi
 
 	size=$(stat -c %s "$filename")
-	msize=$(stat -c %s "$outdir/$filename.$tmp_ext")
+	msize=$(stat -c %s "$filename.$tmp_ext")
 
 	if [[ $msize < $size ]]; then
 	    echo "$filename: $(ratio $size $msize) % (${size}B -> ${msize}B)" >> $stat
@@ -91,7 +87,7 @@ for filename in `find . -type f -name '*' -not -name '*.$tmp_ext'`; do
 	total=$(($total + $size))
 	mtotal=$(($mtotal + $msize))
 
-	mv $outdir/$filename"."$tmp_ext $outdir/$filename
+	mv $filename"."$tmp_ext $filename
     fi
 
 done
