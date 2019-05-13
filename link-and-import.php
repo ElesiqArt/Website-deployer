@@ -1,4 +1,6 @@
 <?php
+	// Ajouter standardisation des URL: "toto/" == "toto" afin de simplifier la réalisation des fichiers de config
+	
 	class WebsiteDeployer {
 		private $config = NULL;
 		private $variable = NULL;
@@ -9,7 +11,8 @@
 			'html' 	=> 'applyHTMLConfig',
 			'js' 	=> 'applyJSConfig',
 			'css' 	=> 'applyCSSConfig',
-			'json' 	=> 'applyJSONConfig'
+			'json' 	=> 'applyJSONConfig',
+			'php'	=> 'applyPHPConfig'
 		);
 		
 		public function __construct($configFile = NULL, $configPath = NULL, $configVariable = NULL) {
@@ -407,6 +410,10 @@
 		}
 		
 		private function applyJSONConfig($target, $htmlConfig) {
+			return $this->applyJSConfig($target, $htmlConfig);
+		}
+		
+		private function applyPHPConfig($target, $htmlConfig) {
 			return $this->applyJSConfig($target, $htmlConfig);
 		}
 	}
