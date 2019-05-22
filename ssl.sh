@@ -2,7 +2,7 @@
 
 echo 'server
 {
-    server_name '$1';
+    server_name $@;
 
     listen      80;
     listen [::]:80;
@@ -11,7 +11,10 @@ echo 'server
 ln --symbolic --force $(realpath ssl.nginx.conf) /etc/nginx/sites-enabled/ssl.nginx.conf
 nginx -t
 service nginx restart
-certbot --nginx certonly -d $1
+
+for domain in "$@"; do domains="$domains -d $domain"; done
+certbot --nginx certonly $domains
+
 rm /etc/nginx/sites-enabled/ssl.nginx.conf
 rm ssl.nginx.conf
 service nginx restart

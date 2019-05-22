@@ -2,30 +2,23 @@
 
 function usage()
 {
-    echo "Usage: compress [--help,-h] [--stat <filename>] [<filename 1> <filename 2> ...]"
+    echo "Usage: compress [--help,-h] [--stat <filename>] <filename 1> [<filename 2> ...]"
 }
-
-for arg in "$@"; do
-    shift
-    case "$arg" in
-	"--help") set -- "$@" "-h"   ;;
-	"--stat") set -- "$@" "-s"   ;;
-	*)        set -- "$@" "$arg" ;;
-    esac
-done
 
 stat="/dev/null"
 
-OPTIND=1
-while getopts "hs:" opt
-do
-  case "$opt" in
-    "h") usage; exit 0     ;;
-    "s") stat=${OPTARG}    ;;
-    "?") usage >&2; exit 1 ;;
-  esac
+parsed_opts=$(getopt -o s: -l help,stat: -- "$@")
+if [[ $? -ne 0 ]]; then usage >&2; exit 1; fi
+eval "set -- $parsed_opts"
+while true; do
+    case "$1" in
+	"--help") usage; exit 0       ;;
+	"-s"|"--stat") shift; stat=$1 ;;
+	--) shift; break              ;;
+	*) usage >&2; exit 1          ;;
+    esac
+    shift
 done
-shift $(expr $OPTIND - 1)
 
 function ratio()
 {
