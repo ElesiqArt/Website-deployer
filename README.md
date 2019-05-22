@@ -28,4 +28,4 @@ If the `--stat <filename>` argument is supplied, compression statistics will be 
 
 ## `ssl.sh`
 
-Fetch an SSL certificate from (Let's Encrypt)[https://letsencrypt.org/] by using Nginx and (Certbot)[https://certbot.eff.org/] for every domain passed as an argument.
+Fetch an SSL certificate for every domain passed as an argument from [Let's Encrypt](https://letsencrypt.org/) by using [Certbot](https://certbot.eff.org/) with the Nginx method.
